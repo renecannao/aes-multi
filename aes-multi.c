@@ -1,11 +1,33 @@
-/**
+/*
 
-	Code based on AES encryption/decryption demo program using OpenSSL EVP apis :
-	https://github.com/saju/misc/blob/master/misc/openssl_aes.c
+    Copyright (C) 2014 , Rene' Cannao' , rene.cannao@gmail.com
+    This file is part of aes-multi.
+
+    aes-multi is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 2 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* To compile:
+   cc -o aes-multi aes-multi.c -lcrypto -lpthread 
+*/
+
+/*
+  Code based on AES encryption/decryption demo program using OpenSSL EVP apis :
+  https://github.com/saju/misc/blob/master/misc/openssl_aes.c
   this is public domain code. 
   Saju Pillai (saju.pillai@gmail.com)
 
-**/
+*/
 
 
 #include <string.h>
@@ -15,8 +37,15 @@
 #include <openssl/evp.h>
 #include <assert.h>
 
+
+// Currently it uses 8 threads, hardcoded: future version will have this parameter configurable.
 #define NUM_THREADS 8
-//#define DEBUG 1
+
+// Threads run into a spin loop. Future version will implement a producer/consumer algorithm
+#define USLEEP_TIME	50
+
+#define BSIZE	10240
+
 
 typedef struct __thr_data {
 	pthread_t thr_id;
@@ -39,7 +68,6 @@ _thr_data **THD=NULL;
 __thread unsigned char key[32];
 __thread unsigned char iv[32];
 
-#define BSIZE	10240
 int decrypt=0;
 unsigned char *key_data;
 int key_data_len;
@@ -129,9 +157,6 @@ void * consumer_thread(void *arg) {
     exit(EXIT_FAILURE);
   }
 
-#ifdef DEBUG
-	fprintf(stderr,"Line: %d -- Started Consumer %d , buff %d\n", __LINE__, thd->id, thd->bufsize);
-#endif /* DEBUG */
 //	pthread_mutex_lock(&thd->mu);
 //		pthread_cond_signal(&thd->sig_producer);
 //	pthread_cond_wait(&thd->sig_consumer, &thd->mu);
@@ -141,7 +166,7 @@ void * consumer_thread(void *arg) {
 //	if (thd->bufsize >= 0) pthread_cond_wait(&thd->sig_consumer, &thd->mu);
 
 	while (t) {
-	while (__sync_add_and_fetch(&thd->_lock,0) != 1) { usleep(10); }
+	while (__sync_add_and_fetch(&thd->_lock,0) != 1) { usleep(USLEEP_TIME); }
 //	while (thd->bufsize >= 0) {
 		//fprintf(stderr,"Line: %d -- Consumer reading buff %d\n", __LINE__, thd->bufsize);
 //		pthread_cond_wait(&thd->sig_consumer, &thd->mu);
