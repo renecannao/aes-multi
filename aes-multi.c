@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 
 
 	if (argc!=3) {
-		fprintf(stderr,"Usage: aes [ -c | -d ] key\n");
+		fprintf(stderr,"Usage: %s [ -c | -d ] key\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
